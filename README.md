@@ -9,10 +9,19 @@ em `192.168.0.200` e baixa as distros para a pasta `distros`.
 |---|---|
 | Ubuntu Desktop 24.04.5.1 (amd64) | `ubuntu-24.04.5.1-desktop-amd64.iso` |
 | Ubuntu Server 24.04.5 (amd64) | `ubuntu-24.04.5-live-server-amd64.iso` |
+| Ubuntu Desktop 26.04.1 LTS (amd64) | `ubuntu-26.04.1-desktop-amd64.iso` |
+| Ubuntu Server 26.04.1 LTS (amd64) | `ubuntu-26.04.1-live-server-amd64.iso` |
+| Kali Linux 2026.2 Live/Desktop (amd64) | `kali-linux-2026.2-live-amd64.iso` |
 | Windows 11 Enterprise Eval x64 (25H2) | `Windows11-x64-Eval.iso` |
 | Windows 10 Enterprise Eval x64 (22H2) | `Windows10-x64-Eval.iso` |
 
 Pasta de distros: **`/var/www/html/distros`** (servida em `http://192.168.0.200/distros/`).
+
+> **Kali:** o ISO *live* da Kali é publicado **apenas via BitTorrent**
+> (`KALI_LIVE_URL` aponta para o `.torrent`). O `02-download-isos.sh` baixa o
+> torrent com `aria2c` e salva como `.iso`. Para boot PXE, o `03` extrai
+> `live/vmlinuz` + `live/initrd.img` (TFTP) e `live/filesystem.squashfs` (HTTP,
+> carregado com `boot=live fetch=...`).
 
 ## Requisitos
 
@@ -73,7 +82,8 @@ e verifica SHA256 do Ubuntu via `SHA256SUMS`:
 
 ```bash
 bash 02-download-isos.sh            # tudo
-bash 02-download-isos.sh ubuntu     # só Ubuntu Desktop + Server
+bash 02-download-isos.sh ubuntu     # só Ubuntu Desktop + Server (24 + 26)
+bash 02-download-isos.sh kali       # só Kali (via BitTorrent)
 bash 02-download-isos.sh windows    # só Windows 10 + 11
 ```
 
@@ -119,3 +129,16 @@ sudo systemctl restart dnsmasq
 sudo systemctl restart apache2
 sudo systemctl restart tftpd-hpa
 ```
+
+## Serviços adicionais (Webmin / FTP / Samba)
+
+| Serviço | Porta | Acesso |
+|---|---|---|
+| Webmin | `https://192.168.0.200:10000` | login `pxeuser` + senha do usuário |
+| ProFTPD | `ftp://192.168.0.200` (21) | usuário `distros` / `1q2w3e!@` (home `/var/www/html/distros`) |
+| Samba | `\\192.168.0.200\distros` (445) | leitura/escrita para todos na LAN (guest) |
+
+- ProFTPD: `DefaultRoot ~` prende cada usuário na própria pasta. O usuário
+  `distros` tem home em `/var/www/html/distros`.
+- Samba: share `[distros]` com `guest ok = yes` e `force user/group = www-data`
+  (arquivos novos ficam legíveis pelo Apache/PXE).

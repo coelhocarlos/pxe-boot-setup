@@ -11,6 +11,9 @@ UBU_D="$ISO_DIR/$UBUNTU_DESKTOP_ISO"
 UBU_S="$ISO_DIR/$UBUNTU_SERVER_ISO"
 W10="$ISO_DIR/$WIN10_ISO"
 W11="$ISO_DIR/$WIN11_ISO"
+UBU26_D="$ISO_DIR/$UBUNTU26_DESKTOP_ISO"
+UBU26_S="$ISO_DIR/$UBUNTU26_SERVER_ISO"
+KALI="$ISO_DIR/$KALI_LIVE_ISO"
 
 # ---------------------------------------------------------------------------
 # Extrai kernel/initrd dos ISOs Ubuntu (casper) para o TFTP.
@@ -46,6 +49,8 @@ prep_ubuntu() {
 
 prep_ubuntu "$UBU_D" "$TFTP_DIR/ubuntu/desktop"
 prep_ubuntu "$UBU_S" "$TFTP_DIR/ubuntu/server"
+prep_ubuntu "$UBU26_D" "$TFTP_DIR/ubuntu26/desktop"
+prep_ubuntu "$UBU26_S" "$TFTP_DIR/ubuntu26/server"
 
 # ---------------------------------------------------------------------------
 # Windows via wimboot (iPXE sobre HTTP)
@@ -102,6 +107,25 @@ EOF
 prep_windows "$W11" "win11"
 prep_windows "$W10" "win10"
 
+# ---------------------------------------------------------------------------
+# Kali Linux (Live/Desktop) - extrai vmlinuz/initrd (TFTP) e squashfs (HTTP)
+# ---------------------------------------------------------------------------
+log "Extraindo Kali (live)"
+if [ -s "$KALI" ]; then
+  $SUDO mkdir -p "$TFTP_DIR/kali" "$ISO_DIR/kali"
+  $SUDO 7z x -so "$KALI" live/vmlinuz             > "$TFTP_DIR/kali/vmlinuz"      2>/dev/null || true
+  $SUDO 7z x -so "$KALI" live/initrd.img          > "$TFTP_DIR/kali/initrd.img"   2>/dev/null || true
+  $SUDO 7z x -so "$KALI" live/filesystem.squashfs > "$ISO_DIR/kali/filesystem.squashfs" 2>/dev/null || true
+  $SUDO chmod 644 "$TFTP_DIR/kali/vmlinuz" "$TFTP_DIR/kali/initrd.img" "$ISO_DIR/kali/filesystem.squashfs" 2>/dev/null || true
+  if [ -s "$TFTP_DIR/kali/vmlinuz" ] && [ -s "$TFTP_DIR/kali/initrd.img" ] && [ -s "$ISO_DIR/kali/filesystem.squashfs" ]; then
+    log "OK: kali/vmlinuz+initrd.img (TFTP) e kali/filesystem.squashfs (HTTP)"
+  else
+    warn "Kali: faltando vmlinuz/initrd.img/squashfs (verifique o nome dos arquivos no ISO)"
+  fi
+else
+  warn "ISO Kali ausente: $KALI"
+fi
+
 # ipxe com wimboot tambem na arvore TFTP (alguns clientes BIOS)
 $SUDO cp "$ISO_DIR/wimboot" "$TFTP_DIR/boot/" 2>/dev/null || true
 
@@ -124,31 +148,46 @@ LABEL local
 MENU SEPARATOR
 
 LABEL ubuntu-desktop
-  MENU LABEL ^2) Ubuntu Desktop (live via HTTP)
+  MENU LABEL ^2) Ubuntu 24.04 Desktop (live via HTTP)
   KERNEL ubuntu/desktop/vmlinuz
   APPEND initrd=ubuntu/desktop/initrd ip=dhcp boot=casper url=http://$PXE_IP/distros/$UBUNTU_DESKTOP_ISO quiet splash ---
 
 LABEL ubuntu-server
-  MENU LABEL ^3) Ubuntu Server (live via HTTP)
+  MENU LABEL ^3) Ubuntu 24.04 Server (live via HTTP)
   KERNEL ubuntu/server/vmlinuz
   APPEND initrd=ubuntu/server/initrd ip=dhcp boot=casper url=http://$PXE_IP/distros/$UBUNTU_SERVER_ISO quiet ---
+
+LABEL ubuntu26-desktop
+  MENU LABEL ^4) Ubuntu 26.04 Desktop (live via HTTP)
+  KERNEL ubuntu26/desktop/vmlinuz
+  APPEND initrd=ubuntu26/desktop/initrd ip=dhcp boot=casper url=http://$PXE_IP/distros/$UBUNTU26_DESKTOP_ISO quiet splash ---
+
+LABEL ubuntu26-server
+  MENU LABEL ^5) Ubuntu 26.04 Server (live via HTTP)
+  KERNEL ubuntu26/server/vmlinuz
+  APPEND initrd=ubuntu26/server/initrd ip=dhcp boot=casper url=http://$PXE_IP/distros/$UBUNTU26_SERVER_ISO quiet ---
+
+LABEL kali
+  MENU LABEL ^6) Kali Linux Live (desktop via HTTP)
+  KERNEL kali/vmlinuz
+  APPEND initrd=kali/initrd.img boot=live username=root hostname=kali fetch=http://$PXE_IP/distros/kali/filesystem.squashfs ---
 
 MENU SEPARATOR
 
 LABEL win11
-  MENU LABEL ^4) Windows 11 Enterprise (wimboot)
+  MENU LABEL ^7) Windows 11 Enterprise (wimboot)
   KERNEL ipxe.lkrn
   APPEND dhcp && chain http://$PXE_IP/distros/win11.ipxe
 
 LABEL win10
-  MENU LABEL ^5) Windows 10 Enterprise (wimboot)
+  MENU LABEL ^8) Windows 10 Enterprise (wimboot)
   KERNEL ipxe.lkrn
   APPEND dhcp && chain http://$PXE_IP/distros/win10.ipxe
 
 MENU SEPARATOR
 
 LABEL shell
-  MENU LABEL ^6) iPXE Shell
+  MENU LABEL ^9) iPXE Shell
   KERNEL ipxe.lkrn
 MENU
 
@@ -159,15 +198,19 @@ log "Gerando script iPXE (EFI)"
 $SUDO tee "$TFTP_DIR/boot/menu.ipxe" >/dev/null <<IPXE
 #!ipxe
 menu PXE BOOT - $PXE_IP
-item --gap -- Distros Linux
-item ubuntu-desktop   Ubuntu Desktop (netboot NFS)
-item ubuntu-server    Ubuntu Server (netboot NFS)
-item --gap -- Distros Windows
-item win11            Windows 11 Enterprise
-item win10            Windows 10 Enterprise
+item --gap -- Ubuntu
+item ubuntu-desktop    Ubuntu 24.04 Desktop (live HTTP)
+item ubuntu-server     Ubuntu 24.04 Server (live HTTP)
+item ubuntu26-desktop  Ubuntu 26.04 Desktop (live HTTP)
+item ubuntu26-server   Ubuntu 26.04 Server (live HTTP)
+item --gap -- Kali
+item kali              Kali Linux Live (desktop via HTTP)
+item --gap -- Windows
+item win11             Windows 11 Enterprise
+item win10             Windows 10 Enterprise
 item --gap --
-item local            Boot Local HD
-item shell            iPXE Shell
+item local             Boot Local HD
+item shell             iPXE Shell
 choose --default local --timeout 30000 target && goto \${target}
 
 :ubuntu-desktop
@@ -178,6 +221,21 @@ boot
 :ubuntu-server
 kernel tftp://$PXE_IP/ubuntu/server/vmlinuz initrd=initrd ip=dhcp boot=casper url=http://$PXE_IP/distros/$UBUNTU_SERVER_ISO quiet ---
 initrd tftp://$PXE_IP/ubuntu/server/initrd
+boot
+
+:ubuntu26-desktop
+kernel tftp://$PXE_IP/ubuntu26/desktop/vmlinuz initrd=initrd ip=dhcp boot=casper url=http://$PXE_IP/distros/$UBUNTU26_DESKTOP_ISO quiet splash ---
+initrd tftp://$PXE_IP/ubuntu26/desktop/initrd
+boot
+
+:ubuntu26-server
+kernel tftp://$PXE_IP/ubuntu26/server/vmlinuz initrd=initrd ip=dhcp boot=casper url=http://$PXE_IP/distros/$UBUNTU26_SERVER_ISO quiet ---
+initrd tftp://$PXE_IP/ubuntu26/server/initrd
+boot
+
+:kali
+kernel tftp://$PXE_IP/kali/vmlinuz initrd=initrd.img boot=live username=root hostname=kali fetch=http://$PXE_IP/distros/kali/filesystem.squashfs ---
+initrd tftp://$PXE_IP/kali/initrd.img
 boot
 
 :win11

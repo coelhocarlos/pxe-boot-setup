@@ -35,6 +35,24 @@ export UBUNTU_DESKTOP_SUMS="https://releases.ubuntu.com/24.04.5.1/SHA256SUMS"
 export UBUNTU_SERVER_SUMS="https://releases.ubuntu.com/24.04.5/SHA256SUMS"
 
 # ---------------------------------------------------------------------------
+# Ubuntu 26.04 LTS (Resolute Raccoon)
+# ---------------------------------------------------------------------------
+export UBUNTU26_DESKTOP_URL="https://releases.ubuntu.com/26.04/ubuntu-26.04.1-desktop-amd64.iso"
+export UBUNTU26_SERVER_URL="https://releases.ubuntu.com/26.04/ubuntu-26.04.1-live-server-amd64.iso"
+export UBUNTU26_DESKTOP_ISO="ubuntu-26.04.1-desktop-amd64.iso"
+export UBUNTU26_SERVER_ISO="ubuntu-26.04.1-live-server-amd64.iso"
+export UBUNTU26_DESKTOP_SUMS="https://releases.ubuntu.com/26.04/SHA256SUMS"
+export UBUNTU26_SERVER_SUMS="https://releases.ubuntu.com/26.04/SHA256SUMS"
+
+# ---------------------------------------------------------------------------
+# Kali Linux (Live/Desktop - live-boot com squashfs via HTTP)
+# O ISO live 2026.2 e distribuido apenas via BitTorrent pela Kali.
+# ---------------------------------------------------------------------------
+export KALI_LIVE_URL="https://cdimage.kali.org/kali-2026.2/kali-linux-2026.2-live-amd64.iso.torrent"
+export KALI_LIVE_ISO="kali-linux-2026.2-live-amd64.iso"
+export KALI_LIVE_SUMS="https://archive.kali.org/kali-images/current/SHA256SUMS"
+
+# ---------------------------------------------------------------------------
 # Windows (Enterprise Evaluation - links diretos do CDN da Microsoft)
 # ---------------------------------------------------------------------------
 export WIN11_URL="https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"

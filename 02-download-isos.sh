@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # =============================================================================
 # 02-download-isos.sh - Baixa as distros para a pasta de distros ($ISO_DIR)
-#   - Ubuntu Desktop
-#   - Ubuntu Server (Live Server)
+#   - Ubuntu Desktop / Server (24.04 e 26.04)
+#   - Kali Linux (Live/Desktop)
 #   - Windows 11 Enterprise Eval
 #   - Windows 10 Enterprise Eval
 # Uso:
 #   bash 02-download-isos.sh            # baixa tudo
-#   bash 02-download-isos.sh ubuntu     # so Ubuntu (desktop + server)
+#   bash 02-download-isos.sh ubuntu     # so Ubuntu (desktop + server 24 e 26)
+#   bash 02-download-isos.sh kali       # so Kali
 #   bash 02-download-isos.sh windows    # so Windows (10 + 11)
 # =============================================================================
 set -euo pipefail
@@ -97,13 +98,55 @@ verifica_sha256() {
   fi
 }
 
+# baixa_torrent <url_do_.torrent> <nome-da-.iso> [url_SHA256SUMS]
+# Distribuicoes que so publicam a ISO via BitTorrent (ex.: Kali live).
+baixa_torrent() {
+  local turl="$1" out="$2" sums="${3:-}"
+  local path="$ISO_DIR/$out"
+  local torr="/tmp/$(basename "$turl")"
+
+  if [ -s "$path" ]; then
+    info "$out ja existe ($(human "$(stat -c%s "$path")")). Pulando download."
+  else
+    log "Baixando torrent para $out"
+    if ! $SUDO curl -skL --max-time 120 -o "$torr" "$turl"; then
+      warn "Falha ao baixar o arquivo .torrent: $turl"
+      return 1
+    fi
+    if [ ! -s "$torr" ]; then
+      warn "Arquivo .torrent vazio (?)"
+      return 1
+    fi
+    log "Baixando via BitTorrent: $out"
+    $SUDO aria2c -c -x8 -s8 --seed-time=0 --file-allocation=none \
+                 --console-log-level=warn \
+                 -d "$ISO_DIR" -o "$out" "$torr" \
+      || warn "aria2c (torrent) falhou para $out"
+    $SUDO rm -f "$torr"
+  fi
+
+  if [ -n "$sums" ]; then
+    verifica_sha256 "$path" "$out" "$sums"
+  fi
+}
+
 # --- execucao ---------------------------------------------------------------
 want_ubuntu() { [ "$FILTER" = "all" ] || [ "$FILTER" = "ubuntu" ] || [ "$FILTER" = "linux" ]; }
+want_kali() { [ "$FILTER" = "all" ] || [ "$FILTER" = "kali" ] || [ "$FILTER" = "linux" ]; }
 want_windows() { [ "$FILTER" = "all" ] || [ "$FILTER" = "windows" ]; }
 
 if want_ubuntu; then
   baixa_iso "$UBUNTU_DESKTOP_URL" "$UBUNTU_DESKTOP_ISO" "$UBUNTU_DESKTOP_SUMS"
   baixa_iso "$UBUNTU_SERVER_URL"  "$UBUNTU_SERVER_ISO"  "$UBUNTU_SERVER_SUMS"
+  baixa_iso "$UBUNTU26_DESKTOP_URL" "$UBUNTU26_DESKTOP_ISO" "$UBUNTU26_DESKTOP_SUMS"
+  baixa_iso "$UBUNTU26_SERVER_URL"  "$UBUNTU26_SERVER_ISO"  "$UBUNTU26_SERVER_SUMS"
+fi
+
+if want_kali; then
+  case "$KALI_LIVE_URL" in
+    *.torrent) baixa_torrent "$KALI_LIVE_URL" "$KALI_LIVE_ISO" "$KALI_LIVE_SUMS" ;;
+    *)         baixa_iso "$KALI_LIVE_URL" "$KALI_LIVE_ISO" "$KALI_LIVE_SUMS" ;;
+  esac
 fi
 
 if want_windows; then
