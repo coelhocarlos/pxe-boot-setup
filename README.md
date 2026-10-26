@@ -72,8 +72,28 @@ chmod +x *.sh
 bash 01-install-pxe.sh        # instala e configura os serviços
 bash 02-download-isos.sh      # baixa as distros (aceita: ubuntu | windows | all)
 bash 03-setup-pxe-menu.sh     # extrai kernels/wimboot e gera menus
+sudo bash 04-setup-pxe-cifs.sh  # opcional: máquinas com 4 GB (SMB/CIFS)
 sudo bash validate.sh         # valida
 ```
+
+## Instalação em máquinas com 4 GB de RAM (SMB/CIFS)
+
+As entradas `url=` do menu copiam o **ISO inteiro** (~6.5 GB) para a RAM do
+initramfs — em 4 GB a instalação para por volta de **52%**. Para essas máquinas
+use o método SMB/CIFS:
+
+```bash
+sudo bash 04-setup-pxe-cifs.sh
+```
+
+O script extrai o ISO para `/var/www/html/distros/<pasta>`, publica essa pasta
+em um share Samba **somente leitura para convidado** (`[pxe]`) e insere as
+entradas `[SMB] ... (4GB RAM)` no menu. O initrd monta a pasta com
+`netboot=cifs nfsroot=//IP/pxe/<pasta>` e lê o squashfs **sob demanda** (nada é
+copiado para a RAM; ~1 GB de uso). Funciona em 2 GB.
+
+Diagnóstico completo, linha de comando do kernel, validação e tabela de erros:
+**[docs/instalar-4gb-ram.md](docs/instalar-4gb-ram.md)**
 
 ## Apenas baixar as distros (script de download)
 
@@ -95,6 +115,8 @@ bash 02-download-isos.sh windows    # só Windows 10 + 11
 - **UEFI**: `efi/ipxe.efi` → menu `boot/menu.ipxe` (Linux + Windows via `wimboot`).
 - Ubuntu boota via **HTTP** (`casper url=http://.../distros/<iso>`): kernel/initrd
   saem do TFTP e o restante é lido do ISO por HTTP — **não usa NFS**.
+- Em máquinas de **4 GB** use as entradas `[SMB] ... (4GB RAM)`: o ISO é lido de
+  uma pasta extraída via SMB/CIFS sob demanda (ver seção acima).
 - Windows usa `wimboot` carregando `boot.wim`/`BCD`/`boot.sdi` extraídos dos ISOs
   por HTTP.
 
@@ -104,6 +126,11 @@ Se o servidor for um **container LXC** (ex.: `virt: lxc`), o `nfs-kernel-server`
 não sobe (`/proc/fs/nfsd: permission denied`). Por isso o Ubuntu usa **HTTP**
 em vez de NFS — funciona em LXC e em VM. TFTP é servido pelo `tftpd-hpa`
 (porta 69) e o `dnsmasq` faz apenas DHCP/PXE.
+
+Para máquinas com pouca RAM o caminho é o share **SMB/CIFS** (`04`), que também
+funciona em LXC: o servidor é o Samba (userspace), sem depender do `nfsd` do
+kernel. O cliente monta com `netboot=cifs` e o casper usa
+`mount.cifs -ouser=root,password=` (por isso o share aceita convidado).
 
 ## Ajustes
 

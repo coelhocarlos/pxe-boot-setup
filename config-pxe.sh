@@ -68,6 +68,18 @@ export ARIA2_CONNECTIONS="${ARIA2_CONNECTIONS:-4}"
 export WIMBOOT_URL="${WIMBOOT_URL:-https://github.com/ipxe/wimboot/releases/download/v2.9.0/wimboot}"
 
 # ---------------------------------------------------------------------------
+# Instalacao em maquinas com 4 GB de RAM (04-setup-pxe-cifs.sh)
+# O ISO e' extraido para uma pasta e a pasta e' exportada por SMB/CIFS
+# (somente leitura, convidado) - o cliente le o squashfs sob demanda.
+# Formato de CIFS_DISTROS: "<pasta>:<arquivo.iso>", separados por espaco.
+# ---------------------------------------------------------------------------
+export CIFS_SHARE_NAME="${CIFS_SHARE_NAME:-pxe}"
+export CIFS_ROOT="${CIFS_ROOT:-$ISO_DIR}"
+export CIFS_DISTROS="${CIFS_DISTROS:-ub26live-desktop:${UBUNTU26_DESKTOP_ISO} ub24live-desktop:${UBUNTU_DESKTOP_ISO}}"
+export SMB_CONF="${SMB_CONF:-/etc/samba/smb.conf}"
+export MENU_FILE="${MENU_FILE:-/srv/tftp/boot/menu.ipxe}"
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 log(){ printf '\n== %s ==\n' "$*"; }
