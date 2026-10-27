@@ -25,7 +25,7 @@ Pasta de distros: **`/var/www/html/distros`** (servida em `http://192.168.0.200/
 
 ## Requisitos
 
-- Acesso SSH ao servidor: `192.168.0.200`, usuário **`pxeuser`**, senha **`1q2w3e!@`**
+- Acesso SSH ao servidor: `192.168.0.200`, usuário **`pxeuser`**, senha **`SENHA_USER`**
   (com permissão de `sudo`).
 - Máquina local Linux/macOS: `sshpass`, `rsync`, `ssh` — ou Windows com `plink`/`pscp`.
 - Servidor alvo: Ubuntu 24.04 limpo, ~12GB livres (só Ubuntu) ou ~40GB (com Windows).
