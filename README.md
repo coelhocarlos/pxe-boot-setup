@@ -162,7 +162,7 @@ sudo systemctl restart tftpd-hpa
 | Serviço | Porta | Acesso |
 |---|---|---|
 | Webmin | `https://192.168.0.200:10000` | login `pxeuser` + senha do usuário |
-| ProFTPD | `ftp://192.168.0.200` (21) | usuário `distros` / `1q2w3e!@` (home `/var/www/html/distros`) |
+| ProFTPD | `ftp://192.168.0.200` (21) | usuário `distros` / `SENHA_USER` (home `/var/www/html/distros`) |
 | Samba | `\\192.168.0.200\distros` (445) | leitura/escrita para todos na LAN (guest) |
 
 - ProFTPD: `DefaultRoot ~` prende cada usuário na própria pasta. O usuário
